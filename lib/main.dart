@@ -100,29 +100,69 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
     });
   }
 
+  void showDialogBox(BuildContext context) {
+    // flutter defined function
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // return object of type Dialog
+        return AlertDialog(
+          title: new Text("Apply Filters"),
+          // content: new Text("Alert Dialog body"),
+          actions: [
+            // Filter
+            // TODO - filter closed issues
+            // TODO - filter issues older than a year
+            // Sort
+            // TODO - sort by created
+            // TODO - sort by last edited
+            // TODO - sort by comment count
+            new FlatButton(
+              child: new Text("Close"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return ListView(
+    return _issues.isNotEmpty ? _issueListView() : _progressView();
+  }
+
+  Widget _issueListView() {
+    return Column(
       children: [
-        Text("Filter Buttons Here"),
-        Container(height: 500, child: _issueListView())
+        Expanded(
+            child: ListView.builder(
+                padding: EdgeInsets.all(16.0),
+                itemCount: _issues.length,
+                itemBuilder: (context, i) {
+                  if (i.isOdd) return Divider();
+                  final index = i ~/ 2;
+                  String text = _issues[index].title + " " + index.toString();
+                  return Text(text);
+                })),
+        Padding(
+          padding: EdgeInsets.all(16.0),
+          child: ElevatedButton(
+            child: Text("filter"),
+            onPressed: () {
+              showDialogBox(context);
+            },
+          ),
+        )
       ],
     );
   }
 
-  Widget _issueListView() {
-    return _issues.isNotEmpty
-        ? ListView.builder(
-            padding: EdgeInsets.all(16.0),
-            itemCount: _issues.length,
-            itemBuilder: (context, i) {
-              if (i.isOdd) return Divider();
-              final index = i ~/ 2;
-              String text = _issues[index].title + " " + index.toString();
-              return Text(text);
-            })
-        // TODO - add progress indicator
-        : Text("nothing yet");
+  Widget _progressView() {
+    // TODO - add progress indicator
+    return Text("progress view here");
   }
 }
