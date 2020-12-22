@@ -29,11 +29,11 @@ class LabeledIssuesTabBarController extends StatelessWidget {
             bottom: TabBar(
               tabs: [
                 Tab(text: "全て"),
-                Tab(text: "p: webview"),
-                Tab(text: "p: shared_preferences"),
+                Tab(text: "webview"),
+                Tab(text: "shared_preferences"),
                 Tab(text: "waiting for customer response"),
                 Tab(text: "severe: new feature"),
-                Tab(text: "p: share")
+                Tab(text: "share")
               ],
             ),
             title: Text("Flutter Issues"),
@@ -93,19 +93,17 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
     super.initState();
     _label = widget.label;
     loadIssuesWith(label: _label);
-    print(_label);
   }
 
   void loadIssuesWith({String label}) {
     github.issues
         .listByRepo(RepositorySlug("flutter", "flutter"),
             state: "all", labels: [_label])
-        .take(100)
+        .take(500)
         .listen((event) {
           setState(() {
             _issues.add(event);
             _filteredIssues.add(event);
-            print(_label);
           });
         });
   }
@@ -113,9 +111,6 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
   // filter the issues using options from showFilterOptions
   // update _filteredIssues and set state
   void filterIssues() {
-    print("filter issues $_label");
-    print("show open issues  :  $showOpenIssues");
-    print("show closed issues: $showClosedIssues");
     DateTime filterTime = showOldIssues
         ? DateTime.utc(1977, 7, 7)
         : DateTime.now().subtract(Duration(days: 365));
@@ -124,13 +119,12 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
         .where((f) => f.isClosed == showClosedIssues)
         .where((f) => f.createdAt.isAfter(filterTime))
         .toList();
-    // filteredIssues.sort()
-    print(filteredIssues.length);
+    // TODO - handle 0 items in filteredIssues
+    if (filteredIssues.length == 0) {
+      filteredIssues.add(Issue(title: "There is actually nothing here..."));
+    }
     setState(() {
-      print("setting filtered issues");
-      print(_filteredIssues.length);
       _filteredIssues = filteredIssues;
-      print(_filteredIssues.length);
     });
   }
 
@@ -186,18 +180,14 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
                         )
                       ],
                     ),
-
-                    // TODO - filter issues older than a year
                     // Sort
                     // TODO - sort by created
                     // TODO - sort by last edited
                     // TODO - sort by comment count
-
                     FlatButton(
-                      child: Text("Close"),
+                      child: Text("Filter"),
                       onPressed: () {
                         filterIssues();
-
                         Navigator.of(context).pop();
                       },
                     )
@@ -212,10 +202,12 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return _filteredIssues.isNotEmpty ? _issueListView() : _progressView();
+    return _filteredIssues.isNotEmpty
+        ? _buildFilteredIssueListView()
+        : _progressView();
   }
 
-  Widget _issueListView() {
+  Widget _buildFilteredIssueListView() {
     return Column(
       children: [
         Expanded(
@@ -225,19 +217,46 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
                 itemBuilder: (context, i) {
                   if (i.isOdd) return Divider();
                   final index = i ~/ 2;
-                  String text =
-                      _filteredIssues[index].title + " " + index.toString();
-                  return Text(text);
+                  return _issueView(_filteredIssues[index]);
                 })),
         Padding(
           padding: EdgeInsets.all(16.0),
           child: ElevatedButton(
-            child: Text("filter"),
+            child: Text("Filter"),
             onPressed: () {
               showFilterOptions(context);
             },
           ),
         )
+      ],
+    );
+  }
+
+  Widget _issueView(Issue issue) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text("No. " + issue.number.toString() + " "),
+            Divider(
+              color: Colors.white,
+              thickness: 200,
+            ),
+            Icon(
+              Icons.comment,
+              size: 14,
+            ),
+            Text(" " + issue.commentsCount.toString())
+          ],
+        ),
+        Row(
+          children: [
+            Icon(Icons.info, color: Colors.green, size: 25),
+            Text(issue.state)
+          ],
+        ),
+        Text(issue.title),
+        Text(formattedDate(issue))
       ],
     );
   }
@@ -262,4 +281,14 @@ class _LabeledIssuesState extends State<LabeledIssuesView>
       ],
     );
   }
+}
+
+// Helpers
+String formattedDate(Issue issue) {
+  return issue.createdAt.year.toString() +
+      "年" +
+      issue.createdAt.month.toString() +
+      "月" +
+      issue.createdAt.day.toString() +
+      "日";
 }
